@@ -18,10 +18,10 @@ from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import csv
-import torch
-from PIL import Image
-from io import BytesIO
-import logging
+import torch # Bibliothèque principale pour exécuter les modèles sur GPU (PyTorch)
+from PIL import Image # Librairie pour ouvrir, convertir et manipuler des images locales
+from io import BytesIO 
+import logging # Pour contrôler le niveau d'affichage des logs (supprimer les warnings inutiles)
 from transformers import (
     AutoImageProcessor,  # Gère automatiquement les pré-traitements (resize, normalisation...) selon le modèle
     AutoModel,           # Permet de charger les modèles de vision (ex : DINOv2, SigLIP)
@@ -105,8 +105,8 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
         for fut in tqdm(as_completed(futures), total=len(futures), desc="Téléchargement"):
             url = futures[fut]
             try:
-                url, path, error = fut.result()
-                results.append((url, path, error))
+                url, local_path, error = fut.result()
+                results.append((url, local_path, error))
                 if error:
                     failed.append((url, error))
             except Exception as e:
@@ -130,7 +130,6 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
 ## Application d'embedding avec un modèle de vision
 ##################################################################################################
 
-from transformers import AutoProcessor, AutoModel, CLIPProcessor, CLIPModel, AutoImageProcessor
 
 ################################################ DINO ###############################################
 def encode_with_dino(image_dir, processor, model, device="cuda", batch_size=16):
@@ -187,7 +186,7 @@ def upload_dino(model_name="facebook/dinov2-large", device="cuda"):
 ################################################ CLIP ###############################################
 
 ## Econdage d'une image avec un modèle de vision
-def encode_with_clip(image_dir=None, texts=None, processor=None, model=None, device="cuda", batch_size=16):
+def encode_with_clip(image_dir=None, texts=None, processor=None, model=None, device=device, batch_size=16):
     """
     Encode des images et/ou des textes avec un modèle de la famille CLIP/OpenCLIP.
     'image_dir' peut être un chemin vers un dossier, un fichier, ou une liste de fichiers.
@@ -290,7 +289,7 @@ def upload_clip(model_name="laion/CLIP-ViT-H-14-laion2B-s32B-b79K", device="cuda
 ########################################################################################################
 ########################################################################################################
 
-def search_engine(image_dir, query, df_clip, model, processor, k=9, device="cuda"):
+def search_engine(image_dir, query, df, model, processor, k=10, device="cuda"):
     """
     Cherche les images les plus similaires à une requête dans un index pré-calculé.
     La requête peut être un texte, un chemin vers une image, ou un vecteur d'embedding.
@@ -321,7 +320,7 @@ def search_engine(image_dir, query, df_clip, model, processor, k=9, device="cuda
         raise ValueError("Format de la requête non reconnu.")
 
     # --- 2. Calculer les similarités ---    
-    image_matrix = np.vstack(df_clip["embedding"].values)
+    image_matrix = np.vstack(df["embedding"].values)
     
     # Le produit scalaire mesure la similarité cosinus pour des vecteurs normalisés
     similarities = image_matrix @ query_embedding.T
@@ -329,7 +328,7 @@ def search_engine(image_dir, query, df_clip, model, processor, k=9, device="cuda
     # --- 3. Trouver et afficher les top k résultats ---
     top_k_indices = np.argsort(similarities)[-k:][::-1]
     
-    top_files = df_clip["filename"].iloc[top_k_indices].tolist()
+    top_files = df["filename"].iloc[top_k_indices].tolist()
     top_scores = similarities[top_k_indices]
 
     # Affichage des images
@@ -344,54 +343,7 @@ def search_engine(image_dir, query, df_clip, model, processor, k=9, device="cuda
         plt.subplot(rows, cols, i + 1)
         plt.imshow(img)
         plt.axis("off")
-        plt.title(f"Similarité: {score:.3f}", fontsize=12)
+        plt.title(f"{fname}\n Similarité: {score:.3f}", fontsize=12)
 
     plt.tight_layout()
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-########################################################################################################
-## Outil 2: CLustering
-########################################################################################################
-
-## Test
-
-def test_performance(X, df,start=2, end=200,  step=1):
-    _ = df.copy()
-    for i in range(start, end, step):
-        print(f"{i=}")   
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=i, min_samples=5, metric="euclidean")
-        labels = clusterer.fit_predict(X)
-        _["cluster"] = labels.astype(str)
-
-        n_clusters = len(np.unique(labels[labels >= 0]))
-        noise_ratio = len(_[_["cluster"] == "-1"]) / len(_) * 100
-        persistence = clusterer.cluster_persistence_.mean() if n_clusters > 0 else np.nan
-
-        # Calcul du silhouette en excluant le bruit
-        silhouette = np.nan
-        mask = labels != -1
-        if n_clusters > 1 and mask.sum() > 1:
-            try:
-                silhouette = silhouette_score(X[mask], labels[mask])
-            except Exception:
-                pass
-
-        print(f"Clusters: {n_clusters}, Bruit: {noise_ratio:.2f}%, "
-              f"Persistance: {persistence:.3f}, Silhouette: {silhouette:.3f}")
