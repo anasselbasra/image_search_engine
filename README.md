@@ -3,6 +3,20 @@
 A lightweight, reproducible **semantic image search pipeline** using a SOTA **CLIP embeddings**.  
 It downloads images from URLs, computes their vector representations, and lets you search by **text**, **image**, or **precomputed embeddings**.
 
+## Examples
+
+### 🔍 Text → Image search
+Example query: `"Netanyahu is committing a genocide"`
+
+<img src="assets/image_search_text.png" alt="Text to Image search example" width="800"/>
+
+---
+
+### 🖼️ Image → Image search
+Example query: aerial destruction photo (Gaza, 2024)
+
+<img src="assets/image_search_image.png" alt="Image to Image search example" width="800"/>
+
 ---
 
 ##  Features
@@ -25,6 +39,9 @@ It downloads images from URLs, computes their vector representations, and lets y
 ## Project Structure
 image_search_engine/
 │
+├─ assets/
+│   ├─ image_search_text.png
+│   ├─ image_search_image.png
 ├─ img_urls/ # {subject}.csv files
 ├─ img_data/ # downloaded images (ignored)
 ├─ img_embeddings/ # parquet embeddings
