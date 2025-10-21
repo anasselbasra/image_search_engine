@@ -12,8 +12,6 @@ import requests, time, os
 from pathlib import Path  # Gère proprement les chemins de fichiers (OS-independent)
 import pandas as pd
 import numpy as np 
-import hdbscan
-from sklearn.metrics import silhouette_score
 
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -34,6 +32,8 @@ logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 ### Pour visualiser les images:
 def show_image(path):
     from  matplotlib.pyplot import  imread, imshow, axis, show
@@ -124,7 +124,6 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
     print(f"Succès: {len([r for r in results if r[1]])}")
     print(f"Échecs: {len(failed)}" + (f"(voir {failed_csv})" if return_failed_csv else ""))
     return results, failed
-##########################################################################################
 
 
 
@@ -132,11 +131,9 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
 ## Application d'embedding avec un modèle de vision
 ##################################################################################################
 
-
-########################################################################################################
 ################################################ CLIP ###############################################
 
-## Econdage d'une image avec un modèle de vision
+## Econdage d'une image avec clip
 def encode_with_clip(image_dir=None, texts=None, processor=None, model=None, device=device, batch_size=16):
     """
     Encode des images et/ou des textes avec un modèle de la famille CLIP/OpenCLIP.
@@ -209,8 +206,6 @@ def encode_with_clip(image_dir=None, texts=None, processor=None, model=None, dev
         text_embeddings = feats.cpu().float().numpy()
         results["text_embeddings"] = pd.DataFrame({"text": texts, "embedding": list(text_embeddings)})
 
-        # ajoute vstack ou autre
-
     return results
 
 
@@ -220,6 +215,11 @@ def upload_clip(model_name="laion/CLIP-ViT-H-14-laion2B-s32B-b79K", device="cuda
     """
     Charge automatiquement un modèle visuel (CLIP)
     et renvoie (processor, model) sur le bon device.
+    Les modèles qui peuvent être utilisé: tous les modèles CLIP
+    Exemples:
+        "laion/CLIP-ViT-H-14-laion2B-s32B-b79K" <- 1024 <- 1 (le meilleur) 
+        "openai/clip-vit-large-patch14-336"<- 768 <-  2
+        "openai/clip-vit-large-patch14" <- 768 <- 3
     """
     # CLIP / OpenCLIP
     processor = CLIPProcessor.from_pretrained(model_name, use_fast=True)
@@ -227,17 +227,13 @@ def upload_clip(model_name="laion/CLIP-ViT-H-14-laion2B-s32B-b79K", device="cuda
 
     print(f" Modèle {model_name} chargé sur {device}")
     return processor, model
-
 ### "openai/clip-vit-large-patch14" <- 768 <- 3
 ### "laion/CLIP-ViT-H-14-laion2B-s32B-b79K" <- 1024 <- 1 (le meilleur) 
 ### "openai/clip-vit-large-patch14-336"<- 768 <-  2
 
-########################################################################################################
-########################################################################################################
 
+########################################################################################################
 ######  SEARCH ENGINE
-
-########################################################################################################
 ########################################################################################################
 
 def search_engine(image_dir, query, df, model, processor, k=10, device="cuda"):
