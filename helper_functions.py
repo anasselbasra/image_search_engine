@@ -34,7 +34,7 @@ logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
+### Pour visualiser les images:
 def show_image(path):
     from  matplotlib.pyplot import  imread, imshow, axis, show
     # Chemin vers votre image
@@ -46,10 +46,11 @@ def show_image(path):
     imshow(img)
     axis('off')  # Masquer les axes pour une vue propre
     show()
+##########################################################################################
 
 
-
-
+##########################################################################################
+#############################  "Télechargement des images"  ##############################
 
 def download_with_retry(url, path, folder_name, retries=2, delay=1, timeout=8):
     """
@@ -123,6 +124,7 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
     print(f"Succès: {len([r for r in results if r[1]])}")
     print(f"Échecs: {len(failed)}" + (f"(voir {failed_csv})" if return_failed_csv else ""))
     return results, failed
+##########################################################################################
 
 
 
@@ -130,57 +132,6 @@ def parallel_download(urls, path, folder_name, return_failed_csv=False, csv_name
 ## Application d'embedding avec un modèle de vision
 ##################################################################################################
 
-
-################################################ DINO ###############################################
-def encode_with_dino(image_dir, processor, model, device="cuda", batch_size=16):
-    """
-    Encode toutes les images d'un dossier avec un modèle visuel (ex : DINOv2).
-    Retourne un DataFrame (filename, embedding).
-    """
-    exts = {".jpg", ".jpeg", ".png", ".webp"}
-    paths = [p for p in Path(image_dir).iterdir() if p.suffix.lower() in exts]
-
-    embeddings, names = [], []
-
-    for i in tqdm(range(0, len(paths), batch_size), desc="Encoding batches"):
-        batch_paths = paths[i:i+batch_size]
-
-        # Chargement parallèle des images
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            images = list(ex.map(lambda p: Image.open(p).convert("RGB"), batch_paths))
-
-        # Prétraitement des images + conversion en float16
-        inputs = processor(images=images, return_tensors="pt").to(device)
-        inputs["pixel_values"] = inputs["pixel_values"]  # garantit compatibilité FP16
-
-        # Encodage
-        with torch.no_grad():
-            out = model(**inputs)
-            if hasattr(out, "pooler_output"):
-                feats = out.pooler_output
-            elif hasattr(out, "last_hidden_state"):
-                feats = out.last_hidden_state.mean(dim=1)
-            else:
-                raise ValueError("Modèle non compatible : pas de pooler_output ni last_hidden_state")
-
-            feats = torch.nn.functional.normalize(feats, dim=-1)
-
-        embeddings.extend(feats.cpu().float().numpy())
-        names.extend([p.name for p in batch_paths])
-
-    return pd.DataFrame({"filename": names, "embedding": embeddings})
-
-def upload_dino(model_name="facebook/dinov2-large", device="cuda"):
-    """
-    Charge automatiquement un modèle visuel (DINOv2, v3, etc.)
-    et renvoie (processor, model) sur le bon device.
-    """
-    processor = AutoImageProcessor.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name, dtype=torch.bfloat16).to(device).eval()
-
-    print(f"Modèle: {model_name} chargé sur {device}")
-
-    return processor, model
 
 ########################################################################################################
 ################################################ CLIP ###############################################
@@ -284,7 +235,7 @@ def upload_clip(model_name="laion/CLIP-ViT-H-14-laion2B-s32B-b79K", device="cuda
 ########################################################################################################
 ########################################################################################################
 
-######   Outil 1: SEARCH ENGINE
+######  SEARCH ENGINE
 
 ########################################################################################################
 ########################################################################################################
