@@ -5,18 +5,21 @@ It downloads images from URLs, computes their vector representations, and lets y
 
 ## Examples
 
-### 🔍 Text → Image search
+### Text → Image search
 Example query: `"Netanyahu is committing a genocide"`
 
-<img src="assets/image_search_text.png" alt="Text to Image search example" width="800"/>
+<p align="center">
+  <img src="assets/image_search_text.png" alt="Text to Image search example" width="100%" />
+</p>
 
 ---
 
-### 🖼️ Image → Image search
+### Image → Image search
 Example query: aerial destruction photo (Gaza, 2024)
 
-<img src="assets/image_search_image.png" alt="Image to Image search example" width="800"/>
-
+<p align="center">
+  <img src=assets/image_search_image.png" alt="Image to Image search example" width="100%" />
+</p>
 ---
 
 ##  Features
