@@ -18,7 +18,7 @@ Example query: `"Netanyahu is committing a genocide"`
 Example query: aerial destruction photo (Gaza, 2024)
 
 <p align="center">
-  <img src=assets/image_search_image.png" alt="Image to Image search example" width="100%" />
+  <img src="assets/image_search_image.png" alt="Image to Image search example" width="100%" />
 </p>
 ---
 
