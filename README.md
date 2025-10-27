@@ -68,3 +68,9 @@ pip install -r requirements.txt
 
 # run main notebook
 1 main.ipynb
+```
+
+## Remark
+
+The transformer-based backbone (CLIP, DINO, VIT...) follows this pipeline: 
+  -image is divided into patches → linear projection (independent embeddings) → positional encoding added → attention mechanism (patches "communicate") → final aggregation (mean or [CLS]) → global vector.
